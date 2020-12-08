@@ -1,4 +1,4 @@
-p<p align="center">
+<p align="center">
 <a href="https://www.tresnoir.com">
 <img alt="Tres Noir" src="https://github.com/kenput3r/tres-noir/blob/master/src/images/tres-noir-icon-large.png" width="120" />
 </a>
