@@ -10,7 +10,7 @@ export default async function fetchAvailableQty(handle) {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: headers,
-    body: JSON.stringify({ query: query(handle) }),
+    body: JSON.stringify({ query: query(handle), variables: { handle } }),
   })
   const response_json = await response.json()
   const formatted_data = formatData(response_json.data.productByHandle)
@@ -21,9 +21,9 @@ const formatData = data => {
   const metafields = {}
   const variants = {}
   for (let variant of data.variants.edges) {
-    const sku = variant.node.sku
+    const id = variant.node.id
     const quantityAvailable = variant.node.quantityAvailable
-    variants[sku] = { quantityAvailable }
+    variants[id] = { quantityAvailable }
   }
   for (let metafield of data.metafields.edges) {
     const namespace = metafield.node.namespace
@@ -37,26 +37,28 @@ const formatData = data => {
   return { metafields, variants }
 }
 
-const query = handle => `
-{
-  productByHandle(handle: "${handle}") {
-    variants(first: 100) {
-      edges {
-        node {
-          sku
-          quantityAvailable
+const query = () => `
+query fetchProduct($handle: String!)
+  {
+    productByHandle(handle: $handle) {
+      variants(first: 100) {
+        edges {
+          node {
+            sku
+            id
+            quantityAvailable
+          }
         }
       }
-    }
-    metafields(first: 50) {
-      edges {
-        node {
-          namespace
-          key
-          value
+      metafields(first: 50) {
+        edges {
+          node {
+            namespace
+            key
+            value
+          }
         }
       }
     }
   }
-}
 `

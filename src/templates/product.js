@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useContext } from "react"
 import { graphql } from "gatsby"
 import Img from "gatsby-image"
 import styled from "styled-components"
@@ -6,6 +6,7 @@ import Layout from "../components/layout"
 import SEO from "../components/seo"
 import newQuantitySelectArray from "../utils/newQuantitySelectArray"
 import fetchProduct from "../utils/fetchProduct"
+import { CartContext } from "../context/cartContext"
 
 const Page = styled.div`
   .product-image {
@@ -33,17 +34,51 @@ const displayPrice = priceRange => {
 
 const Product = ({ data }) => {
   const { shopifyProduct: product } = data
+  const { addToCart } = useContext(CartContext)
+  const [rtData, setRtData] = useState(null)
   const [maxSelect, setMaxSelect] = useState([1])
   const [selectedVariant, setSelectedVariant] = useState(
     product.variants[0].shopifyId
   )
   const [selectedQty, setSelectedQty] = useState(1)
+
+  /**
+   * @function changeVariant
+   * @param {string} variant
+   * sets selected variant and max select quantity
+   */
+  const changeVariant = variant => {
+    console.log("================start changeVariant=================")
+    console.log("...setting selected variant")
+    setSelectedVariant(variant)
+    console.log("...creating new max quantity array")
+    const newMaxSelect = newQuantitySelectArray(
+      rtData.variants[variant].quantityAvailable
+    )
+    console.log("...setting max quantity")
+    setMaxSelect(newMaxSelect)
+    console.log("=================end changeVariant==================")
+  }
+
+  /**
+   * Run once, then only update if dependent's values have changed
+   */
   useEffect(() => {
-    console.log("variant", selectedVariant)
+    console.log("================start useEffect=================")
     ;(async () => {
+      console.log("...fetching products")
       const fetchedProduct = await fetchProduct(product.handle)
+      console.log("...setting real time data", fetchedProduct)
+      setRtData(fetchedProduct)
+      console.log("...creating new max quantity array")
+      const newMaxSelect = newQuantitySelectArray(
+        fetchedProduct.variants[selectedVariant].quantityAvailable
+      )
+      console.log("...setting max quantity")
+      setMaxSelect(newMaxSelect)
+      console.log("=================end useEffect==================")
     })()
-  }, [selectedVariant, selectedQty, product.handle])
+  }, [product.handle])
   return (
     <Layout>
       <SEO title={product.title} description={product.description} />
@@ -60,7 +95,7 @@ const Product = ({ data }) => {
           <div className="form-group">
             <select
               aria-label="Product Variant"
-              onChange={e => setSelectedVariant(e.target.value)}
+              onChange={e => changeVariant(e.target.value)}
             >
               {product.variants.map(variant => (
                 <option key={variant.id} value={variant.shopifyId}>
@@ -87,6 +122,9 @@ const Product = ({ data }) => {
               type="button"
               value="Add to cart"
               disabled={!maxSelect.length}
+              onClick={() =>
+                addToCart({ id: selectedVariant, qty: selectedQty })
+              }
             />
           </div>
         </form>

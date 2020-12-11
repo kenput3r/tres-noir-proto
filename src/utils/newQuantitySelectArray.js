@@ -1,10 +1,10 @@
 /**
  * @function newQuantitySelectArray - creates an array of number, up to 30
  * @param {number} qtyAvailable - the realtime inventory qty available
- * @returns {[number]}
+ * @returns {[number]} - array of numbers
  */
 
-function newQuantitySelectArray(qtyAvailable) {
+const newQuantitySelectArray = qtyAvailable => {
   const arr = []
   if (qtyAvailable < 1) {
     return arr
