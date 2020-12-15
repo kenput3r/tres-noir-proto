@@ -19,44 +19,85 @@ const createMarkup = markup => {
 }
 
 /**
- * @function displayPrice - conditionally returns a price or price range
- * @param {*} priceRange
- * @returns {string}
+ * @function Product - The exported page component
+ * @param {*} data - the data sourced from the graphql page query
  */
-const displayPrice = priceRange => {
-  const minPrice = priceRange.minVariantPrice.amount
-  const maxPrice = priceRange.maxVariantPrice.amount
-  const currencyCode = priceRange.minVariantPrice.currencyCode
-  if (minPrice !== maxPrice) {
-    return `${minPrice} - ${maxPrice} ${currencyCode}`
-  }
-}
-
 const Product = ({ data }) => {
   const { shopifyProduct: product } = data
   const { addToCart } = useContext(CartContext)
-  const [rtData, setRtData] = useState(null)
-  const [maxSelect, setMaxSelect] = useState([1])
-  const [selectedVariant, setSelectedVariant] = useState(
-    product.variants[0].shopifyId
-  )
+  const [variants, setVariants] = useState(product.variants)
+  const [maxQty, setMaxQty] = useState([1])
+  const [selectedVariant, setSelectedVariant] = useState(product.variants[0])
   const [selectedQty, setSelectedQty] = useState(1)
 
   /**
+   * @function updateVariants - adds the current available quantity to the variants
+   * @param {object} updates
+   */
+  const updateVariants = updates => {
+    console.log("================start updateVariants=================")
+    const temp_variants = [...variants]
+    for (let i = 0; i < updates.variants.length; i++) {
+      const { node } = updates.variants[i]
+      const matchIds = object => object.shopifyId === node.id
+      const index = temp_variants.findIndex(matchIds)
+      temp_variants[index].quantityAvailable = node.quantityAvailable
+    }
+    setVariants(temp_variants)
+    console.log(`...set variants ${temp_variants}`)
+    console.log("================end updateVariants=================")
+  }
+
+  /**
+   * @function setInitialVariant - sets the first available variant
+   * @param {object} fetchedProduct - the current product data
+   */
+  const setIntialVariant = fetchedProduct => {
+    console.log("================start setInitialVariant=================")
+    const variants = fetchedProduct.variants
+    for (let i = 0; i < variants.length; i++) {
+      const { node } = variants[i]
+      if (node.quantityAvailable > 0) {
+        console.log(`...set selected variant ${node}`)
+        setSelectedVariant(node)
+        const newMaxQty = newQuantitySelectArray(node.quantityAvailable)
+        setMaxQty(newMaxQty)
+        break
+      }
+    }
+    console.log("=================end setInitialVariant==================")
+  }
+
+  /**
    * @function changeVariant
-   * @param {string} variant
+   * @param {string} json
    * sets selected variant and max select quantity
    */
-  const changeVariant = variant => {
+  const changeVariant = async json => {
     console.log("================start changeVariant=================")
-    console.log("...setting selected variant")
+    const variant = await JSON.parse(json)
     setSelectedVariant(variant)
-    console.log("...creating new max quantity array")
-    const newMaxSelect = newQuantitySelectArray(
-      rtData.variants[variant].quantityAvailable
-    )
-    console.log("...setting max quantity")
-    setMaxSelect(newMaxSelect)
+    console.log(`...set selected variant ${variant}`)
+    const newMaxQty = newQuantitySelectArray(variant.quantityAvailable)
+    console.log(`...created new max quantity array ${newMaxQty}`)
+    if (variant.quantityAvailable < selectedQty) {
+      setSelectedQty(1)
+      console.log(`...set selected qty to 1`)
+    }
+    setMaxQty(newMaxQty)
+    console.log(`...set max quantity ${newMaxQty}`)
+    console.log("=================end changeVariant==================")
+  }
+
+  /**
+   * @function changeQty
+   * @param {number} qty
+   * sets selectedQty
+   */
+  const changeQty = qty => {
+    console.log("================start changeVariant=================")
+    setSelectedQty(qty)
+    console.log(`...changed selected qty to ${qty}`)
     console.log("=================end changeVariant==================")
   }
 
@@ -68,14 +109,8 @@ const Product = ({ data }) => {
     ;(async () => {
       console.log("...fetching products")
       const fetchedProduct = await fetchProduct(product.handle)
-      console.log("...setting real time data", fetchedProduct)
-      setRtData(fetchedProduct)
-      console.log("...creating new max quantity array")
-      const newMaxSelect = newQuantitySelectArray(
-        fetchedProduct.variants[selectedVariant].quantityAvailable
-      )
-      console.log("...setting max quantity")
-      setMaxSelect(newMaxSelect)
+      updateVariants(fetchedProduct)
+      setIntialVariant(fetchedProduct)
       console.log("=================end useEffect==================")
     })()
   }, [product.handle])
@@ -90,29 +125,41 @@ const Product = ({ data }) => {
           />
         </div>
         <h1>{product.title}</h1>
-        <h2>{displayPrice(product.priceRange)}</h2>
+        <h2>{selectedVariant.priceV2.amount} USD</h2>
         <form>
           <div className="form-group">
             <select
               aria-label="Product Variant"
               onChange={e => changeVariant(e.target.value)}
             >
-              {product.variants.map(variant => (
-                <option key={variant.id} value={variant.shopifyId}>
-                  {variant.title} - {variant.priceV2.amount}{" "}
-                  {variant.priceV2.currencyCode}
-                </option>
-              ))}
+              {variants.map(variant =>
+                variant.quantityAvailable < 0 ? (
+                  <option
+                    key={variant.id}
+                    value={JSON.stringify(variant)}
+                    disabled={true}
+                    selected={false}
+                  >
+                    {variant.title} - {variant.priceV2.amount}{" "}
+                    {variant.priceV2.currencyCode}
+                  </option>
+                ) : (
+                  <option key={variant.id} value={JSON.stringify(variant)}>
+                    {variant.title} - {variant.priceV2.amount}{" "}
+                    {variant.priceV2.currencyCode}
+                  </option>
+                )
+              )}
             </select>
           </div>
           <div className="form-group">
             <select
               aria-label="Quantity"
-              disabled={!maxSelect.length}
-              onBlur={e => setSelectedQty(e.target.value)}
+              disabled={!maxQty.length}
+              onChange={e => changeQty(e.target.value)}
             >
-              {!maxSelect.length && <option>sold out</option>}
-              {maxSelect.map(number => (
+              {!maxQty.length && <option>sold out</option>}
+              {maxQty.map(number => (
                 <option key={`qty-` + number} value={number}>
                   {number}
                 </option>
@@ -121,9 +168,9 @@ const Product = ({ data }) => {
             <input
               type="button"
               value="Add to cart"
-              disabled={!maxSelect.length}
+              disabled={!maxQty.length}
               onClick={() =>
-                addToCart({ id: selectedVariant, qty: selectedQty })
+                addToCart({ id: selectedVariant.shopifyId, qty: selectedQty })
               }
             />
           </div>

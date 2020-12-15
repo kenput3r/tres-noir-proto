@@ -4,15 +4,11 @@ import Img from "gatsby-image"
 import styled from "styled-components"
 import Layout from "../components/layout"
 import SEO from "../components/seo"
-import logo from "../images/tres-noir-icon-large.png"
 
 const Page = styled.div`
-  h1 {
+  h2 {
     text-align: center;
     text-transform: uppercase;
-    img {
-      width: 120px;
-    }
   }
   .placeholder {
     width: 480px;
@@ -25,11 +21,7 @@ const IndexPage = ({ data }) => (
   <Layout>
     <SEO title="Home" />
     <Page>
-      <h1>
-        <img src={logo} alt="Tres Noir" />
-        <br />
-        Headless Shopify Powered by Gatsby for Tres Noir
-      </h1>
+      <h2>Headless Shopify Powered by Gatsby for Tres Noir</h2>
       <div className="placeholder">
         <Img
           fluid={data.placeholderImage.childImageSharp.fluid}

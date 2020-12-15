@@ -6,34 +6,40 @@ const headers = {
   "X-Shopify-Storefront-Access-Token": token,
 }
 
-export default async function fetchAvailableQty(handle) {
+/**
+ * @function fetchProduct - fetches current product data
+ * @param {string} handle
+ * @returns {object} {metafields: {}, variants: {}}
+ */
+export default async function fetchProduct(handle) {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: headers,
     body: JSON.stringify({ query: query(handle), variables: { handle } }),
   })
   const response_json = await response.json()
-  const formatted_data = formatData(response_json.data.productByHandle)
+  const formatted_data = formatData(response_json)
   return formatted_data
 }
 
-const formatData = data => {
-  const metafields = {}
-  const variants = {}
-  for (let variant of data.variants.edges) {
-    const id = variant.node.id
-    const quantityAvailable = variant.node.quantityAvailable
-    variants[id] = { quantityAvailable }
-  }
-  for (let metafield of data.metafields.edges) {
-    const namespace = metafield.node.namespace
-    const key = metafield.node.key
-    const value = metafield.node.value
-    if (!metafields[namespace]) {
-      metafields[namespace] = {}
-    }
-    metafields[namespace][key] = value
-  }
+const formatData = ({ data }) => {
+  const metafields = data.productByHandle.metafields.edges
+  const variants = data.productByHandle.variants.edges
+  // for (let variant of data.variants.edges) {
+  //   const id = variant.node.id
+  //   const quantityAvailable = variant.node.quantityAvailable
+  //   const priceV2 = variant.node.priceV2
+  //   variants[id] = { quantityAvailable, priceV2, id }
+  // }
+  // for (let metafield of data.metafields.edges) {
+  //   const namespace = metafield.node.namespace
+  //   const key = metafield.node.key
+  //   const value = metafield.node.value
+  //   if (!metafields[namespace]) {
+  //     metafields[namespace] = {}
+  //   }
+  //   metafields[namespace][key] = value
+  // }
   return { metafields, variants }
 }
 
@@ -46,6 +52,9 @@ query fetchProduct($handle: String!)
           node {
             sku
             id
+            priceV2 {
+              amount
+            }
             quantityAvailable
           }
         }
