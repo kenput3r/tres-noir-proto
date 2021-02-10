@@ -1,5 +1,5 @@
 import React, { useContext, useEffect } from "react"
-import { CustomerContext } from "../context/customerContext"
+import { CustomerContext } from "../../context/customerContext"
 
 const Account = () => {
   const { getCustomer } = useContext(CustomerContext)

@@ -29,6 +29,9 @@ const Product = ({ data }) => {
   const [maxQty, setMaxQty] = useState([1])
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0])
   const [selectedQty, setSelectedQty] = useState(1)
+  const [lineItems, setLineItems] = useState([
+    { variantId: product.variants[0].shopifyId, quantity: 1 },
+  ])
 
   /**
    * @function updateVariants - adds the current available quantity to the variants
@@ -114,6 +117,12 @@ const Product = ({ data }) => {
       console.log("=================end useEffect==================")
     })()
   }, [product.handle])
+
+  useEffect(() => {
+    setLineItems([
+      { variantId: selectedVariant.shopifyId, quantity: parseInt(selectedQty) },
+    ])
+  }, [selectedVariant, selectedQty])
   return (
     <Layout>
       <SEO title={product.title} description={product.description} />
@@ -169,9 +178,7 @@ const Product = ({ data }) => {
               type="button"
               value="Add to cart"
               disabled={!maxQty.length}
-              onClick={() =>
-                addToCart({ id: selectedVariant.shopifyId, qty: selectedQty })
-              }
+              onClick={() => addToCart(lineItems)}
             />
           </div>
         </form>
@@ -186,65 +193,7 @@ export default Product
 export const query = graphql`
   query ProductQuery($handle: String!) {
     shopifyProduct(handle: { eq: $handle }) {
-      description
-      descriptionHtml
-      handle
-      id
-      images {
-        altText
-        id
-        localFile {
-          childImageSharp {
-            fluid {
-              ...GatsbyImageSharpFluid
-            }
-          }
-        }
-      }
-      priceRange {
-        minVariantPrice {
-          amount
-          currencyCode
-        }
-        maxVariantPrice {
-          amount
-          currencyCode
-        }
-      }
-      productType
-      shopifyId
-      tags
-      title
-      vendor
-      variants {
-        availableForSale
-        compareAtPriceV2 {
-          amount
-          currencyCode
-        }
-        id
-        image {
-          altText
-          localFile {
-            childImageSharp {
-              fluid {
-                ...GatsbyImageSharpFluid
-              }
-            }
-          }
-        }
-        priceV2 {
-          amount
-          currencyCode
-        }
-        shopifyId
-        sku
-        title
-        selectedOptions {
-          name
-          value
-        }
-      }
+      ...ProductFragment
     }
   }
 `

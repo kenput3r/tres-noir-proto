@@ -1,3 +1,4 @@
+import { ProductQuery } from "./queries"
 const endpoint = process.env.GATSBY_STORE_ENDPOINT
 const token = process.env.GATSBY_STORE_TOKEN
 const headers = {
@@ -15,7 +16,7 @@ export default async function fetchProduct(handle) {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: headers,
-    body: JSON.stringify({ query: query(handle), variables: { handle } }),
+    body: JSON.stringify({ query: ProductQuery, variables: { handle } }),
   })
   const response_json = await response.json()
   const formatted_data = formatData(response_json)
@@ -42,32 +43,3 @@ const formatData = ({ data }) => {
   // }
   return { metafields, variants }
 }
-
-const query = () => `
-query fetchProduct($handle: String!)
-  {
-    productByHandle(handle: $handle) {
-      variants(first: 100) {
-        edges {
-          node {
-            sku
-            id
-            priceV2 {
-              amount
-            }
-            quantityAvailable
-          }
-        }
-      }
-      metafields(first: 50) {
-        edges {
-          node {
-            namespace
-            key
-            value
-          }
-        }
-      }
-    }
-  }
-`

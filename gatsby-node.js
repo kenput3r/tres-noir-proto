@@ -1,7 +1,7 @@
 const path = require("path")
 
 exports.createPages = async ({ graphql, actions: { createPage } }) => {
-  const products = await graphql(`
+  const pageable = await graphql(`
     query PagesQuery {
       allShopifyProduct {
         edges {
@@ -12,14 +12,23 @@ exports.createPages = async ({ graphql, actions: { createPage } }) => {
               key
               value
             }
+            productType
+          }
+        }
+      }
+      allShopifyCollection {
+        edges {
+          node {
+            handle
+            id
           }
         }
       }
     }
   `)
 
-  products.data.allShopifyProduct.edges.forEach(
-    ({ node: { handle, id, metafields } }) => {
+  pageable.data.allShopifyProduct.edges.forEach(
+    ({ node: { handle, id, metafields, productType } }) => {
       let template = "product"
       if (metafields.length) {
         metafields.map(node => {
@@ -28,9 +37,30 @@ exports.createPages = async ({ graphql, actions: { createPage } }) => {
           }
         })
       }
+      if (productType === "Glasses") {
+        template = "product-customizable"
+      }
+      if (
+        productType !== "Lense Customization" &&
+        productType !== "Lens Customization"
+      ) {
+        createPage({
+          path: `/products/${handle}`,
+          component: path.resolve(`./src/templates/${template}.tsx`),
+          context: {
+            id,
+            handle,
+          },
+        })
+      }
+    }
+  )
+  pageable.data.allShopifyCollection.edges.forEach(
+    ({ node: { handle, id } }) => {
+      const template = "collection"
       createPage({
-        path: `/products/${handle}`,
-        component: path.resolve(`./src/templates/${template}.js`),
+        path: `/collections/${handle}`,
+        component: path.resolve(`./src/templates/${template}.tsx`),
         context: {
           id,
           handle,
